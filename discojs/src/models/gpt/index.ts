@@ -1,5 +1,6 @@
 /**
- * this code is taken from gpt-tfjs with modifications from @peacefulotter and @lukemovement
+ * Source: https://github.com/zemlyansky/gpt-tfjs and https://github.com/karpathy/build-nanogpt
+ * With modifications from @peacefulotter, @lukemovement and the Disco team
  **/
 
 import createDebug from "debug";

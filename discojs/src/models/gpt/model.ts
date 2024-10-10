@@ -2,12 +2,12 @@ import createDebug from "debug";
 import * as tf from '@tensorflow/tfjs'
 
 import type { GPTConfig } from './config.js'
-import { getModelSizes, DEFAULT_CONFIG } from './config.js'
+import { getModelSizes, DefaultGPTConfig } from './config.js'
 import { getCustomAdam, clipByGlobalNormObj } from './optimizers.js'
 import evaluate from './evaluate.js'
 import { GPTArchitecture } from './layers.js'
 
-const debug = createDebug("discojs:models:gpt");
+const debug = createDebug("discojs:models:gpt:model");
 
 /**
  * tfjs does not export LazyIterator and Dataset...
@@ -30,7 +30,7 @@ export class GPTModel extends tf.LayersModel {
 
   constructor(partialConfig?: Partial<GPTConfig>, layersModel?: tf.LayersModel) {
     // Fill missing config parameters with default values
-    let completeConfig: Required<GPTConfig> = { ...DEFAULT_CONFIG, ...partialConfig }
+    let completeConfig: Required<GPTConfig> = { ...DefaultGPTConfig, ...partialConfig }
     // Add layer sizes depending on which model has been specified
     completeConfig = { ...completeConfig, ...getModelSizes(completeConfig.modelType) }
 

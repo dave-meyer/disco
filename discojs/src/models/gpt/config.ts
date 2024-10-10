@@ -28,7 +28,7 @@ export interface GPTConfig {
   nEmbd?: number
 }
 // for a benchmark of performance, see https://github.com/epfml/disco/pull/659
-export const DEFAULT_CONFIG: Required<GPTConfig> = {
+export const DefaultGPTConfig: Required<GPTConfig> = {
   name: 'transformer', // prefix for the model layer names
   lr: 0.001,
   weightDecay: 0,
@@ -72,4 +72,25 @@ export function getModelSizes (modelType: GPTModelType): Required<ModelSize> {
     case 'gpt-nano':
       return { nLayer: 3, nHead: 3, nEmbd: 48 }
   }
+}
+
+export interface GenerationConfig {
+  // take random token weighted by its probability
+  // If false, predict the token with the highest probability.
+  doSample: boolean
+  // the generation temperature (higher means more randomness).
+  // Set to 0 for greedy decoding.
+  temperature: number
+  // only consider the topk most likely tokens for sampling. 
+  // used if doSample is true.
+  topk: number
+  // random seed for sampling.
+  seed: number
+}
+
+export const DefaultGenerationConfig: Required<GenerationConfig> = {
+  temperature: 1.0,
+  doSample: false,
+  seed: 42,
+  topk: 50
 }

@@ -13,8 +13,9 @@ import { WeightsContainer } from "../../index.js";
 import { BatchLogs, Model, EpochLogs } from "../index.js";
 
 import { GPTModel } from "./model.js";
-import { DEFAULT_CONFIG, type GPTConfig } from "./config.js";
 import evaluate from "./evaluate.js";
+import { DefaultGPTConfig, DefaultGenerationConfig } from './config.js'
+import type { GPTConfig, GenerationConfig } from './config.js'
 
 const debug = createDebug("discojs:models:gpt");
 
@@ -22,12 +23,6 @@ export type GPTSerialization = {
   weights: WeightsContainer;
   config?: GPTConfig;
 };
-
-interface PredictConfig {
-  temperature: number;
-  // take random token weighted by its probability instead of taking the most likely
-  doSample: boolean;
-}
 
 export class GPT extends Model<"text"> {
   private readonly model: GPTModel;
@@ -43,9 +38,9 @@ export class GPT extends Model<"text"> {
     model.compile();
     this.model = model;
 
-    this.#blockSize = partialConfig?.blockSize ?? DEFAULT_CONFIG.blockSize;
-    this.#maxBatchCount = partialConfig?.maxIter ?? DEFAULT_CONFIG.maxIter;
-    this.#vocabSize = partialConfig?.vocabSize ?? DEFAULT_CONFIG.vocabSize;
+    this.#blockSize = partialConfig?.blockSize ?? DefaultGPTConfig.blockSize;
+    this.#maxBatchCount = partialConfig?.maxIter ?? DefaultGPTConfig.maxIter;
+    this.#vocabSize = partialConfig?.vocabSize ?? DefaultGPTConfig.vocabSize;
   }
 
   /**
@@ -146,13 +141,10 @@ export class GPT extends Model<"text"> {
 
   override async predict(
     batch: Batched<DataFormat.ModelEncoded["text"][0]>,
-    options?: Partial<PredictConfig>,
+    options?: Partial<GenerationConfig>,
   ): Promise<Batched<DataFormat.ModelEncoded["text"][1]>> {
-    const config = {
-      temperature: 1.0,
-      doSample: false,
-      ...options,
-    };
+    // overwrite default with user config
+    const config = Object.assign({}, DefaultGenerationConfig, options)
 
     return List(
       await Promise.all(
@@ -161,9 +153,17 @@ export class GPT extends Model<"text"> {
     );
   }
 
+  /**
+   * Generate the next token after the input sequence.
+   * In other words, takes an input tensor of shape (prompt length T) and returns a tensor of shape (T+1)
+   * 
+   * @param token input tokens of shape (T,). T is truncated to the model's block size
+   * @param config generation config: temperature, doSample, topk
+   * @returns the next token predicted by the model
+   */
   async #predictSingle(
     tokens: DataFormat.ModelEncoded["text"][0],
-    config: PredictConfig,
+    config: GenerationConfig,
   ): Promise<DataFormat.ModelEncoded["text"][1]> {
     // slice input tokens if longer than context length
     tokens = tokens.slice(-this.#blockSize);
@@ -190,11 +190,23 @@ export class GPT extends Model<"text"> {
     );
     logits.dispose();
 
-    const next = tf.tidy(() =>
-      config.doSample
-        ? tf.multinomial(probs, 1).squeeze<tf.Scalar>([0])
-        : probs.argMax<tf.Scalar>(),
-    );
+    const next = tf.tidy(() => {
+      if (config.doSample) {
+        // returns topk biggest values among the `vocab_size` probabilities and the corresponding tokens indices 
+        // both shapes are (config.topk,)
+        const { values: topkProbs, indices: topkTokens } = tf.topk(probs, config.topk);
+        // sample an index from the top-k probabilities
+        // e.g. [[0.1, 0.4, 0.3], [0.1, 0.2, 0.5]] -> [[1], [2]]
+        // note: multinomial does not need the input to sum to 1
+        const selectedIndices = tf.multinomial(topkProbs, 1, config.seed, false) // (B, )
+        // return the corresponding token from the sampled indices (one per sequence in the batch).
+        // if for some reason the probabilities are NaN, selectedIndices will be out of bounds
+        return topkTokens.gather(selectedIndices).squeeze<tf.Scalar>([0]) // (1)
+      } else {
+        // greedy decoding: return the token with the highest probability
+        return probs.argMax<tf.Scalar>()
+      }
+    })
     probs.dispose()
 
     const ret = await next.array();

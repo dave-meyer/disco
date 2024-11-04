@@ -70,7 +70,6 @@ async function main(args: Required<CLIArguments>): Promise<void> {
       maxIter: iterationsPerEpoch,
       blockSize: contextLength,
       lr: 0.0001,
-      vocabSize: 50258 // default wikitext task uses the gpt2 tokenizer with vocabSize 50258
     }
 
     // Load the dataset after setting the Task batch size and max sequence length

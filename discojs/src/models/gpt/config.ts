@@ -10,7 +10,7 @@ type GPTModelType =
 export interface GPTConfig {
   lr: number
   blockSize: number
-  vocabSize: number
+  vocabSize?: number
   modelType: GPTModelType
   name?: string,
   evaluate?: boolean
@@ -42,7 +42,7 @@ export const DEFAULT_CONFIG: Required<GPTConfig> = {
   maxEvalBatches: 12,
   evaluateEvery: 100,
   blockSize: 128,
-  vocabSize: 50258,
+  vocabSize: 50257,
   bias: true,
   debug: false,
   dropout: 0.2,

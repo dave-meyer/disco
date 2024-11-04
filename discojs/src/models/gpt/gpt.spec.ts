@@ -28,7 +28,6 @@ describe("gpt-tfjs", function () {
       evaluateEvery: 10,
       maxEvalBatches: 10,
       blockSize: 8,
-      vocabSize: 50258,
     });
     for (let i = 0; i < 5; i++)
       for await (const _ of model.train(dataset, undefined));

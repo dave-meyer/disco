@@ -17,7 +17,10 @@ class Range extends tf.layers.Layer {
 
   override call (input: tf.Tensor | tf.Tensor[], kwargs: Record<string, unknown>): tf.Tensor | tf.Tensor[] {
     return tf.tidy(() => {
-      if (Array.isArray(input)) input = input[0]
+      if (Array.isArray(input)) {
+        if (input.length !== 1) throw new Error('expected exactly one tensor')
+        input = input[0]
+      }
       this.invokeCallHook(input, kwargs)
 
       const T = input.shape[1]
@@ -42,7 +45,10 @@ class LogLayer extends tf.layers.Layer {
 
   override call (input: tf.Tensor | tf.Tensor[], kwargs: Record<string, unknown>): tf.Tensor | tf.Tensor[] {
     return tf.tidy(() => {
-      if (Array.isArray(input)) input = input[0]
+      if (Array.isArray(input)) {
+        if (input.length !== 1) throw new Error('expected exactly one tensor')
+        input = input[0]
+      }
       this.invokeCallHook(input, kwargs)
 
       const logs = {
@@ -136,7 +142,10 @@ class CausalSelfAttention extends tf.layers.Layer {
         this.cProjBias === undefined
       ) { throw new Error('not built') }
 
-      if (Array.isArray(input)) input = input[0]
+      if (Array.isArray(input)) {
+        if (input.length !== 1) throw new Error('expected exactly one tensor')
+        input = input[0]
+      }
       this.invokeCallHook(input, kwargs)
 
       const dense = (x: tf.Tensor, kernel: tf.LayerVariable, bias: tf.LayerVariable): tf.Tensor => {
@@ -223,6 +232,7 @@ class GELU extends tf.layers.Layer {
     return tf.tidy(() => {
       if (Array.isArray(input)) {
         // TODO support multitensor
+        if (input.length !== 1) throw new Error('expected exactly one tensor')
         input = input[0]
       }
       this.invokeCallHook(input, kwargs)
@@ -332,6 +342,93 @@ function TransformerBlock (conf: BlockConfig): tf.LayersModel {
 
 
 /**
+ * LanguageModelEmbedding is a layer that combines the token embeddings and the language modeling head
+ * I.e. LMEmbedding is used to translate token indices into token embeddings
+ * as well as to project embeddings back into token indices
+ * The GPT2 model uses the same embedding matrix for both the token embeddings and the language modeling head
+ * Because Tensorflow.js doesn't offer an easy weight sharing mechanism, we need to define a custom layer
+ * that can be used for both the token embeddings and the language modeling head.
+ * In the GPT2 model definition, this layers corresponds to wte and lm_head (which reuses wte)
+ */
+class LMEmbedding extends tf.layers.Layer {
+  static readonly className = 'LMEmbedding'
+  embeddings?: tf.LayerVariable
+
+  constructor(private readonly vocabSize: number, private readonly nEmbd: number) {
+    super({})
+  }
+  override build(): void {
+    this.embeddings = this.addWeight(
+      'wte', //use same name as GPT2
+      [this.vocabSize, this.nEmbd],
+      'float32',
+      tf.initializers.randomNormal({})
+    )
+  }
+
+  override computeOutputShape(inputShape: tf.Shape | tf.Shape[]): tf.Shape | tf.Shape[] {
+    let shape: tf.Shape
+    if (Array.isArray(inputShape) && Array.isArray(inputShape[0])) {
+      if (inputShape.length !== 1) throw new Error('Expected exactly one Shape')
+      shape = inputShape[0]
+    }
+    else shape = inputShape as tf.Shape
+    // input shape for the token embedding
+    if (shape.length === 2) {
+      // https://github.com/tensorflow/tfjs/blob/3daf152cb794f4da58fce5e21e09e8a4f89c8f80/tfjs-layers/src/layers/embeddings.ts#L155
+      // batch size and sequence length are undetermined 
+      // so the output shape is [null, null, nEmbd]
+      if (shape[0] !== null || shape[1] !== null) throw new Error('expected shape [null, null, ...]')
+      return [null, null, this.nEmbd]
+    }
+    // input shape for the language modeling head
+    // https://github.com/tensorflow/tfjs/blob/3daf152cb794f4da58fce5e21e09e8a4f89c8f80/tfjs-layers/src/layers/core.ts#L258
+    else if (shape.length === 3) {
+      // batch size and sequence length are undetermined 
+      // so the output shape is [null, null, nEmbd]
+      if (shape[0] !== null || shape[1] !== null) throw new Error('expected shape [null, null, ...]')
+      return [null, null, this.vocabSize]
+    }
+    else throw new Error('unexpected input shape')
+  }
+
+  override call (input: tf.Tensor | tf.Tensor[], kwargs: Record<string, unknown>): tf.Tensor | tf.Tensor[] {
+    return tf.tidy(() => {
+      if (this.embeddings === undefined) throw new Error('not built')
+      if (Array.isArray(input)) {
+        if (input.length !== 1) throw new Error('expected exactly one tensor')
+        input = input[0]
+      }
+      this.invokeCallHook(input, kwargs)
+      
+      // If the input is a 2D tensor, it is a batch of sequences of tokens
+      // so we translate the tokens into embeddings 
+      // using `this.embeddings` as a lookup table
+      if (input.shape.length === 2) {
+        // (batch_size, sequence_length) => (batch_size, sequence_length, nEmbd)
+        return tf.gather(this.embeddings.read(), tf.cast(input, 'int32'), 0)
+      }
+      // If the input is a 3D tensor, it is a sequence of embeddings
+      // so we apply a dense layer to project the embeddings back into the vocabulary space
+      else if (input.shape.length === 3 && input.shape[2] === this.nEmbd) {
+        // Replicate the kernel for each batch element
+        const kernel = this.embeddings.read().expandDims(0).tile([input.shape[0], 1, 1])
+        // TODO: rely on broadcasting when tfjs will support backpropagating through broadcasting
+        // Remove the tile, or use tf.einsum('BTE,VE->BTV', input, this.embeddings.read())
+        // to prevent tensor duplication but tensorflow.js fails to backpropagate einsum
+        // https://github.com/tensorflow/tfjs/issues/5690
+
+        // (batch_size, sequence_length, nEmbd) x (vocabSize, nEmbd)^T -> (batch_size, sequence_length, vocabSize)
+        return tf.matMul(input, kernel, false, true)
+      } else {
+        throw new Error('unexpected input shape for token embeddings')
+      }
+    })
+  }
+}
+tf.serialization.registerClass(LMEmbedding)
+
+/**
  * The GPTArchitecture specifically defines a GPT forward pass, i.e.,
  * what are the inputs, the successive transformer blocks and the outputs. It is then 
  * used to create a GPTModel
@@ -343,14 +440,8 @@ export function GPTArchitecture(config: Required<GPTConfig>): tf.LayersModel {
   const inputs = tf.input({ shape: [null] })
 
   // token embedding
-  let tokEmb = tf.layers.embedding({
-      name: config.name + '.wte',
-      inputDim: config.vocabSize,
-      outputDim: config.nEmbd,
-      embeddingsInitializer: 'zeros',
-      embeddingsRegularizer: undefined,
-      activityRegularizer: undefined
-  }).apply(inputs) as tf.SymbolicTensor
+  const wte = new LMEmbedding(config.vocabSize, config.nEmbd)
+  let tokEmb = wte.apply(inputs) as tf.SymbolicTensor // (batch_size, input length T, nEmbd)
   
   if (config.debug) {
     tokEmb = new LogLayer({ name: 'tokEmb_log' }).apply(tokEmb) as tf.SymbolicTensor
@@ -389,15 +480,9 @@ export function GPTArchitecture(config: Required<GPTConfig>): tf.LayersModel {
     x = new LogLayer({ name: 'ln_f_log' }).apply(x)
   }
 
-  // Append a language modeling head
-  x = tf.layers.dense({
-    name: 'lm_head',
-    units: config.vocabSize,
-    inputDim: config.nEmbd,
-    inputShape: [config.blockSize, config.nEmbd],
-    useBias: false
-  }).apply(x)
-  
+  // language modeling head
+  // GPT2 uses the same matrix for the token embedding and the modeling head
+  x = wte.apply(x)
   if (config.debug) {
     x = new LogLayer({ name: 'lm_head_log' }).apply(x)
   }

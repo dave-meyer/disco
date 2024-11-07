@@ -30,7 +30,7 @@ export const mnist: TaskProvider<'image'> = {
         IMAGE_W: 28,
         LABEL_LIST: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
         scheme: 'decentralized',
-        aggregationStrategy: 'secure',
+        aggregationStrategy: 'mean',
         minNbOfParticipants: 3,
         maxShareValue: 100,
         tensorBackend: 'tfjs'

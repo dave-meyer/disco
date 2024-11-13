@@ -67,7 +67,7 @@ interface DataTypeToTrainingInformation {
 
     // maxSequenceLength: the maximum length of a input string used as input to a GPT model. It is used during preprocessing to
     // truncate strings to a maximum length. The default value is tokenizer.model_max_length
-    maxSequenceLength?: number;
+    maxSequenceLength: number;
   };
 }
 
@@ -234,8 +234,7 @@ export function isTrainingInformation(
       if (
         (typeof tokenizer !== "string" &&
           !(tokenizer instanceof PreTrainedTokenizer)) ||
-        (maxSequenceLength !== undefined &&
-          typeof maxSequenceLength !== "number")
+        (typeof maxSequenceLength !== "number")
       )
         return false;
 

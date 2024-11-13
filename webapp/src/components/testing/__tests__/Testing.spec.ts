@@ -28,6 +28,7 @@ const TASK: Task<"text"> = {
     batchSize: 1,
     roundDuration: 1,
     validationSplit: 0,
+    maxSequenceLength: 64,
   },
 };
 

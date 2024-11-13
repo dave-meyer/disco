@@ -41,7 +41,9 @@ export const wikitext: TaskProvider<'text'> = {
     }
   },
 
-  getModel (): Promise<Model<'text'>> {
-    return Promise.resolve(new models.GPT())
+  getModel(): Promise<Model<'text'>> {
+    return Promise.resolve(new models.GPT({
+      blockSize: this.getTask().trainingInformation.maxSequenceLength,
+    }))
   }
 }

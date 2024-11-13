@@ -28,7 +28,7 @@ export declare abstract class Dataset<T> {
 export class GPTModel extends tf.LayersModel {
   protected readonly config: Required<GPTConfig>
 
-  constructor(partialConfig?: GPTConfig, layersModel?: tf.LayersModel) {
+  constructor(partialConfig?: Partial<GPTConfig>, layersModel?: tf.LayersModel) {
     // Fill missing config parameters with default values
     let completeConfig: Required<GPTConfig> = { ...DEFAULT_CONFIG, ...partialConfig }
     // Add layer sizes depending on which model has been specified

@@ -35,7 +35,7 @@ export class GPT extends Model<"text"> {
   readonly #maxBatchCount: number;
   readonly #vocabSize: number;
 
-  constructor(partialConfig?: GPTConfig, layersModel?: tf.LayersModel) {
+  constructor(partialConfig?: Partial<GPTConfig>, layersModel?: tf.LayersModel) {
     super();
 
     const model = new GPTModel(partialConfig, layersModel);

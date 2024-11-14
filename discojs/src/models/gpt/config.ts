@@ -9,7 +9,7 @@ type GPTModelType =
 
 export interface GPTConfig {
   lr: number
-  blockSize: number
+  contextLength: number
   vocabSize?: number
   modelType: GPTModelType
   name?: string,
@@ -39,7 +39,7 @@ export const DefaultGPTConfig: Required<GPTConfig> = {
   evaluate: true,
   maxEvalBatches: 12,
   evaluateEvery: 100,
-  blockSize: 128,
+  contextLength: 128,
   vocabSize: 50257,
   debug: false,
   dropout: 0.2,

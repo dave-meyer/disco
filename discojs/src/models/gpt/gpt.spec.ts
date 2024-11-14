@@ -25,7 +25,7 @@ describe("gpt-tfjs", function () {
       maxIter: 10,
       evaluateEvery: 50,
       maxEvalBatches: 10,
-      blockSize: 8,
+      contextLength: 8,
       seed
     });
     for (let i = 0; i < 5; i++)

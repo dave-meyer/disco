@@ -69,18 +69,18 @@ async function main(args: Required<CLIArguments>): Promise<void> {
     const config: models.GPTConfig = {
       modelType: modelType as models.GPTConfig['modelType'],
       maxIter: iterationsPerEpoch,
-      blockSize: contextLength,
       lr: 0.0001,
+      contextLength,
     }
 
     // Load the dataset after setting the Task batch size and max sequence length
     // to make sure the dataset is batched and tokenized correctly
     task.trainingInformation.batchSize = batchSize
-    task.trainingInformation.maxSequenceLength = contextLength
+    task.trainingInformation.contextLength = contextLength
     const dataset = loadText('../datasets/wikitext/wiki.train.tokens')
       .map(text => processing.tokenize(tokenizer, text))
       .flatten()
-      .batch(config.blockSize + 1, 1)
+      .batch(config.contextLength + 1, 1)
 
     const preprocessedDataset = dataset
       .map((tokens) => [tokens.pop(), tokens.last()] as [List<number>, number])

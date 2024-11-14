@@ -35,7 +35,7 @@ export const wikitext: TaskProvider<'text'> = {
         roundDuration: 2,
         batchSize: 8, // If set too high firefox raises a WebGL error
         tokenizer: 'Xenova/gpt2',
-        maxSequenceLength: 64,
+        contextLength: 64,
         tensorBackend: 'gpt'
       }
     }
@@ -43,7 +43,7 @@ export const wikitext: TaskProvider<'text'> = {
 
   getModel(): Promise<Model<'text'>> {
     return Promise.resolve(new models.GPT({
-      blockSize: this.getTask().trainingInformation.maxSequenceLength,
+      contextLength: this.getTask().trainingInformation.contextLength,
     }))
   }
 }

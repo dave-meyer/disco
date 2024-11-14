@@ -13,7 +13,7 @@ async function main(): Promise<void> {
     maxIter: 50,
     evaluateEvery:50,
     maxEvalBatches: 10,
-    blockSize: 16,
+    contextLength: 16,
     seed
   }
 
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   const tokenDataset = new Dataset([data])
     .map((text: string) => processing.tokenize(tokenizer, text))
     .flatten()
-    .batch(config.blockSize + 1, 1)
+    .batch(config.contextLength + 1, 1)
     .map((tokens) => [tokens.pop(), tokens.last()] as [List<number>, number])
     .repeat()
     .batch(8);

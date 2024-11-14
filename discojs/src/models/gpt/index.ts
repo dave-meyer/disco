@@ -27,7 +27,7 @@ export type GPTSerialization = {
 export class GPT extends Model<"text"> {
   private readonly model: GPTModel;
 
-  readonly #blockSize: number;
+  readonly #contextLength: number;
   readonly #maxBatchCount: number;
   readonly #vocabSize: number;
 
@@ -38,7 +38,7 @@ export class GPT extends Model<"text"> {
     model.compile();
     this.model = model;
 
-    this.#blockSize = partialConfig?.blockSize ?? DefaultGPTConfig.blockSize;
+    this.#contextLength = partialConfig?.contextLength ?? DefaultGPTConfig.contextLength;
     this.#maxBatchCount = partialConfig?.maxIter ?? DefaultGPTConfig.maxIter;
     this.#vocabSize = partialConfig?.vocabSize ?? DefaultGPTConfig.vocabSize;
   }
@@ -157,7 +157,7 @@ export class GPT extends Model<"text"> {
    * Generate the next token after the input sequence.
    * In other words, takes an input tensor of shape (prompt length T) and returns a tensor of shape (T+1)
    * 
-   * @param token input tokens of shape (T,). T is truncated to the model's block size
+   * @param token input tokens of shape (T,). T is truncated to the model's context length
    * @param config generation config: temperature, doSample, topk
    * @returns the next token predicted by the model
    */
@@ -166,7 +166,7 @@ export class GPT extends Model<"text"> {
     config: GenerationConfig,
   ): Promise<DataFormat.ModelEncoded["text"][1]> {
     // slice input tokens if longer than context length
-    tokens = tokens.slice(-this.#blockSize);
+    tokens = tokens.slice(-this.#contextLength);
 
     const input = tf.tidy(() =>
       tf.tensor1d(tokens.toArray(), "int32").expandDims<tf.Tensor2D>(0),

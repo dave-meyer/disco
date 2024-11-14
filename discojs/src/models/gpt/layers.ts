@@ -67,7 +67,7 @@ tf.serialization.registerClass(LogLayer)
 
 type CausalSelfAttentionConfig =
     ConstructorParameters<typeof tf.layers.Layer>[0]
-    & Record<'blockSize' | 'nHead' | 'nEmbd' | 'dropout' | 'nLayer' | 'seed', number>
+    & Record<'contextLength' | 'nHead' | 'nEmbd' | 'dropout' | 'nLayer' | 'seed', number>
 
 class CausalSelfAttention extends tf.layers.Layer {
   static readonly className = 'CausalSelfAttention'
@@ -97,7 +97,7 @@ class CausalSelfAttention extends tf.layers.Layer {
     // mask is a lower triangular matrix filled with 1
     // calling bandPart zero out the upper triangular part of the all-ones matrix
     // from the doc: tf.linalg.band_part(input, -1, 0) ==> Lower triangular part
-    this.mask = tf.linalg.bandPart(tf.ones([config.blockSize, config.blockSize]), -1, 0)
+    this.mask = tf.linalg.bandPart(tf.ones([config.contextLength, config.contextLength]), -1, 0)
   }
 
   override build (): void {
@@ -266,7 +266,7 @@ class GELU extends tf.layers.Layer {
 tf.serialization.registerClass(GELU)
 
 type MLPConfig = ConstructorParameters<typeof tf.layers.Layer>[0] &
-  Required<ModelSize> & Record<'blockSize' | 'residDrop' | 'nLayer' | 'seed', number>
+  Required<ModelSize> & Record<'contextLength' | 'residDrop' | 'nLayer' | 'seed', number>
 
 function MLP(config: MLPConfig): tf.LayersModel {
   return tf.sequential({ layers: [
@@ -274,7 +274,7 @@ function MLP(config: MLPConfig): tf.LayersModel {
       name: config.name + `.mlp.c_fc`,
       units: 4 * config.nEmbd,
       inputDim: config.nEmbd,
-      inputShape: [config.blockSize, config.nEmbd],
+      inputShape: [config.contextLength, config.nEmbd],
       kernelInitializer: tf.initializers.randomNormal({
         mean: 0, stddev: 0.02, seed: config.seed
       }),
@@ -284,7 +284,7 @@ function MLP(config: MLPConfig): tf.LayersModel {
       name: config.name + '.mlp.c_proj',
       units: config.nEmbd,
       inputDim: 4 * config.nEmbd,
-      inputShape: [config.blockSize, 4 * config.nEmbd],
+      inputShape: [config.contextLength, 4 * config.nEmbd],
       kernelInitializer: tf.initializers.randomNormal({
         mean: 0, stddev: 0.02 * Math.sqrt(2 * config.nLayer), seed: config.seed
       }),
@@ -306,7 +306,7 @@ type BlockConfig = CausalSelfAttentionConfig & MLPConfig & { debug: boolean }
  */
 function TransformerBlock (conf: BlockConfig): tf.LayersModel {
   const config = Object.assign({ name: '.h' }, conf)
-  const inputs = tf.input({ shape: [config.blockSize, config.nEmbd] })
+  const inputs = tf.input({ shape: [config.contextLength, config.nEmbd] })
   let x1, x2
   // input normalization
   x1 = tf.layers.layerNormalization({
@@ -469,7 +469,7 @@ export function GPTArchitecture(config: Required<GPTConfig>): tf.LayersModel {
   const range = new Range({}).apply(inputs)
   let posEmb = tf.layers.embedding({
     name: config.name + '.wpe',
-    inputDim: config.blockSize,
+    inputDim: config.contextLength,
     outputDim: config.nEmbd,
     embeddingsInitializer: tf.initializers.randomNormal({
       mean: 0, stddev: 0.02, seed: config.seed

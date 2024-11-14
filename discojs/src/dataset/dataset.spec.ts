@@ -152,29 +152,29 @@ describe("dataset", () => {
 
   it("batch with overlap yields correct batches", async () => {
     const expectedTokens = Range(0, 53).toList()
-    const blockSize = 4
+    const contextLength = 4
 
     const parsed = new Dataset([expectedTokens])
       .flatten()
-      .batch(blockSize + 1, 1)
+      .batch(contextLength + 1, 1)
       
     // -1 because the last sequence is dropped as there is no next token label
-    const expectedLength = Math.ceil(expectedTokens.size / blockSize) - 1
+    const expectedLength = Math.ceil(expectedTokens.size / contextLength) - 1
     expect(await parsed.size()).to.equal(expectedLength);
       
     // exclude the last sequence because it has been padded
     let sequences = List(await arrayFromAsync(parsed))
-    // we expect the last sequence to have blockSize + 1 tokens via padding
-    expect(sequences.last()?.size).to.equal(blockSize + 1)
+    // we expect the last sequence to have contextLength + 1 tokens via padding
+    expect(sequences.last()?.size).to.equal(contextLength + 1)
     sequences = sequences.pop()
     let i = 0
     for await (const tokens of sequences) {
-      // each sequence has length blockSize + 1 (for the label)
+      // each sequence has length contextLength + 1 (for the label)
       expect(tokens.toArray()).to.deep.equal(
-        expectedTokens.slice(i, i + blockSize + 1).toArray()
+        expectedTokens.slice(i, i + contextLength + 1).toArray()
       );
-      // but the window should move by blockSize only
-      i += blockSize
+      // but the window should move by contextLength only
+      i += contextLength
     }
   })
 

@@ -28,23 +28,28 @@ ___
 
 ___
 :question: **DISCO TECHNOLOGY** 
-- DISCO supports arbitrary deep learning tasks and model architectures in your browser via [TF.js](https://www.tensorflow.org/js)
+- DISCO runs arbitrary deep learning tasks and model architectures in your browser, via [TF.js](https://www.tensorflow.org/js)
 - Decentralized learning :sparkles: relies on [peer2peer](https://github.com/feross/simple-peer) communication
 - Have a look at how DISCO ensures privacy and confidentiality [HERE](docs/PRIVACY.md)
 
 ___
 
-:test_tube: **RESEARCH-BASED DESIGN** 
+:test_tube: **RESEARCH-BASED DESIGN**
 
 DISCO leverages latest research advances, enabling open-access and easy-use distributed training which is
-- :tornado: efficient ([R1](https://github.com/epfml/powergossip), [R2](https://github.com/epfml/ChocoSGD)) 
-- :lock: privacy-preserving ([R3](https://eprint.iacr.org/2017/281.pdf), [R4](https://arxiv.org/abs/2006.04747))
-- :hammer_and_wrench: fault-tolerant and dynamic over time ([R5](https://arxiv.org/abs/2106.06639), [R6](https://arxiv.org/abs/2206.08307))
-- :ninja: robust to malicious actors and data poisoning ([R7](https://arxiv.org/abs/2012.10333), [R8](https://arxiv.org/abs/2006.09365))
-- :apple: :banana: interpretable in imperfectly interoperable data distributions ([R9](https://arxiv.org/abs/2107.06580))
-- :mirror: personalizable  ([R10](https://arxiv.org/abs/2103.00710))
-- :carrot: fairly incentivizing participation
 
+- :lock: privacy-preserving ([R1](https://eprint.iacr.org/2017/281.pdf))
+- :hammer_and_wrench: dynamic and asynchronous over time ([R2](https://arxiv.org/abs/2106.06639), [R7](https://arxiv.org/abs/2206.08307))
+- :ninja: robust to malicious actors ([R3](https://arxiv.org/abs/2012.10333) (partially))
+
+And more on the roadmap
+
+- :tornado: efficient ([R4](https://github.com/epfml/powergossip), [R5](https://github.com/epfml/ChocoSGD))
+- :lock: privacy-preserving while Byzantine robust ([R6](https://arxiv.org/abs/2006.04747))
+- :ninja: resistant to data poisoning ([R8](https://arxiv.org/abs/2006.09365))
+- :apple: :banana: interpretable in imperfectly interoperable data distributions ([R9](https://arxiv.org/abs/2107.06580))
+- :mirror: personalizable ([R10](https://arxiv.org/abs/2103.00710))
+- :carrot: fairly incentivizing participation
 
 ___
 

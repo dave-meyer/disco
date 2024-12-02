@@ -11,6 +11,7 @@ interface BenchmarkArguments {
   roundDuration: number
   batchSize: number
   save: boolean
+  host: URL
 }
 
 type BenchmarkUnsafeArguments = Omit<BenchmarkArguments, 'provider'> & {
@@ -28,6 +29,13 @@ const unsafeArgs = parse<BenchmarkUnsafeArguments>(
     roundDuration: { type: Number, alias: 'r', description: 'Round duration (in epochs)', defaultValue: 2 },
     batchSize: { type: Number, alias: 'b', description: 'Training batch size', defaultValue: 10 },
     save: { type: Boolean, alias: 's', description: 'Save logs of benchmark', defaultValue: false },
+    host: {
+      type: (raw: string) => new URL(raw),
+      typeLabel: "URL",
+      description: "Host to connect to",
+      defaultValue: new URL("http://localhost:8080"),
+    },
+
     help: { type: Boolean, optional: true, alias: 'h', description: 'Prints this usage guide' }
   },
   {

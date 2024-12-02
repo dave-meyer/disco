@@ -48,12 +48,11 @@ async function main<D extends DataType>(
   console.log(`Started ${task.trainingInformation.scheme} training of ${task.id}`)
   console.log({ args })
 
-  const url = new URL('http://localhost:8080')
   const dataSplits = await Promise.all(
     Range(0, numberOfUsers).map(async i => getTaskData(task.id, i))
   )
   const logs = await Promise.all(
-    dataSplits.map(async data => await runUser(task, url, data as Dataset<DataFormat.Raw[D]>))
+    dataSplits.map(async data => await runUser(task, args.host, data as Dataset<DataFormat.Raw[D]>))
   )
 
   if (args.save) {

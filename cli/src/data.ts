@@ -1,13 +1,12 @@
 import path from "node:path";
-
+import { Dataset, processing } from "@epfml/discojs";
 import type {
-  Dataset,
   DataFormat,
   DataType,
   Image,
   Task,
 } from "@epfml/discojs";
-import { loadCSV, loadImagesInDir } from "@epfml/discojs-node";
+import { loadCSV, loadImage, loadImagesInDir } from "@epfml/discojs-node";
 import { Repeat } from "immutable";
 
 async function loadSimpleFaceData(): Promise<Dataset<DataFormat.Raw["image"]>> {
@@ -36,10 +35,34 @@ async function loadLusCovidData(): Promise<Dataset<DataFormat.Raw["image"]>> {
   return positive.chain(negative);
 }
 
+function loadTinderDogData(split: number): Dataset<DataFormat.Raw["image"]> {
+  const folder = path.join("..", "datasets", "tinder_dog", `${split + 1}`);
+  return loadCSV(path.join(folder, "labels.csv"))
+    .map(
+      (row) =>
+        [
+          processing.extractColumn(row, "filename"),
+          processing.extractColumn(row, "label"),
+        ] as const,
+    )
+    .map(async ([filename, label]) => {
+      try {
+        const image = await Promise.any(
+          ["png", "jpg", "jpeg"].map((ext) =>
+            loadImage(path.join(folder, `${filename}.${ext}`)),
+          ),
+        );
+        return [image, label];
+      } catch {
+        throw Error(`${filename} not found in ${folder}`);
+      }
+    });
+}
+
 export async function getTaskData<D extends DataType>(
-  task: Task<D>,
+  taskID: Task<D>['id'], userIdx: number
 ): Promise<Dataset<DataFormat.Raw[D]>> {
-  switch (task.id) {
+  switch (taskID) {
     case "simple_face":
       return (await loadSimpleFaceData()) as Dataset<DataFormat.Raw[D]>;
     case "titanic":
@@ -52,7 +75,9 @@ export async function getTaskData<D extends DataType>(
       ).zip(Repeat("cat")) as Dataset<DataFormat.Raw[D]>;
     case "lus_covid":
       return (await loadLusCovidData()) as Dataset<DataFormat.Raw[D]>;
+    case "tinder_dog":
+      return loadTinderDogData(userIdx) as Dataset<DataFormat.Raw[D]>;
     default:
-      throw new Error(`Data loader for ${task.id} not implemented.`);
+      throw new Error(`Data loader for ${taskID} not implemented.`);
   }
 }

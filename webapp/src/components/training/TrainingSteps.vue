@@ -64,8 +64,6 @@ function setupTrainingStore() {
 // Init the task once the taskStore has been loaded successfully
 // If it is not we redirect to the task list
 const task = computed<Task<DataType> | undefined>(() => {
-  console.log("training: recompute task");
-
   if (tasksStore.status == "success") {
     return tasksStore.tasks.get(props.id);
   }

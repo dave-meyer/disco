@@ -10,39 +10,15 @@ import { loadCSV } from "@epfml/discojs-web";
 import Trainer from "../Trainer.vue";
 import TrainingInformation from "../TrainingInformation.vue";
 
-vi.mock("axios", async () => {
-  async function get(url: string) {
-    if (url === "http://localhost:8080/tasks/titanic/model.json") {
-      return {
-        data: await serialization.model.encode(
-          await defaultTasks.titanic.getModel(),
-        ),
-      };
-    }
-    throw new Error("unhandled get");
-  }
-
-  const axios = await vi.importActual<typeof import("axios")>("axios");
-  return {
-    ...axios,
-    default: {
-      ...axios.default,
-      get,
-    },
-  };
-});
-
 async function setupForTask() {
   const provider = defaultTasks.titanic;
 
   vi.stubGlobal("fetch", async (url: string | URL) => {
-    if (url.toString() === "http://localhost:8080/tasks/titanic/model.json")
-      return {
-        arrayBuffer: async () => {
-          const model = await provider.getModel();
-          return await serialization.model.encode(model);
-        },
-      };
+    if (url.toString() === "http://localhost:8080/tasks/titanic/model.json") {
+      const model = await provider.getModel();
+      const encoded = await serialization.model.encode(model);
+      return new Response(encoded);
+    }
     throw new Error(`unhandled get: ${url}`);
   });
   afterEach(() => {

@@ -60,7 +60,7 @@ it("shows stored models", async () => {
 it("allows to download server's models", async () => {
   vi.stubGlobal("fetch", async (url: string | URL) => {
     if (url.toString() === "http://localhost:8080/tasks")
-      return { json: () => Promise.resolve([TASK]) };
+      return new Response(JSON.stringify([TASK]));
     throw new Error(`unhandled get: ${url}`);
   });
   afterEach(() => {

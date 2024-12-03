@@ -11,6 +11,7 @@ interface BenchmarkArguments {
   roundDuration: number
   batchSize: number
   save: boolean
+  host: URL
 }
 
 type BenchmarkUnsafeArguments = Omit<BenchmarkArguments, 'provider'> & {
@@ -22,12 +23,19 @@ const argExample = 'e.g. npm start -- -u 2 -e 3 # runs 2 users for 3 epochs'
 
 const unsafeArgs = parse<BenchmarkUnsafeArguments>(
   {
-    task: { type: String, alias: 't', description: 'Task: titanic, simple_face, cifar10 or lus_covid', defaultValue: 'simple_face' },
-    numberOfUsers: { type: Number, alias: 'u', description: 'Number of users', defaultValue: 1 },
+    task: { type: String, alias: 't', description: 'Task: tinder_dog, titanic, simple_face, cifar10 or lus_covid', defaultValue: 'tinder_dog' },
+    numberOfUsers: { type: Number, alias: 'u', description: 'Number of users', defaultValue: 2 },
     epochs: { type: Number, alias: 'e', description: 'Number of epochs', defaultValue: 10 },
     roundDuration: { type: Number, alias: 'r', description: 'Round duration (in epochs)', defaultValue: 2 },
     batchSize: { type: Number, alias: 'b', description: 'Training batch size', defaultValue: 10 },
     save: { type: Boolean, alias: 's', description: 'Save logs of benchmark', defaultValue: false },
+    host: {
+      type: (raw: string) => new URL(raw),
+      typeLabel: "URL",
+      description: "Host to connect to",
+      defaultValue: new URL("http://localhost:8080"),
+    },
+
     help: { type: Boolean, optional: true, alias: 'h', description: 'Prints this usage guide' }
   },
   {
@@ -42,6 +50,7 @@ const supportedTasks = Map(
     defaultTasks.lusCovid,
     defaultTasks.simpleFace,
     defaultTasks.titanic,
+    defaultTasks.tinderDog,
   ).map((t) => [t.getTask().id, t]),
 );
 

@@ -75,7 +75,7 @@
         >
           <template #title>
             <p
-              class="font-bold"
+              class="font-bold uppercase"
               :class="result.output.correct ? 'text-green-500' : 'text-red-700'"
             >
               {{ result.output.truth }}

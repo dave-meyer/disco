@@ -1,11 +1,11 @@
-import * as tf from "@tensorflow/tfjs-node"
+import "@tensorflow/tfjs-node"
 import { AutoTokenizer } from "@xenova/transformers";
-import { models, processing } from "@epfml/discojs";
+import { models, processing, Dataset } from "@epfml/discojs";
+import { List } from "immutable";
 
 async function main(): Promise<void> { 
   const data = "Lorem ipsum dolor sit amet, consectetur adipis"
-  const datasetSource = new tf.data.FileDataSource(Buffer.from(data))
-  const textDataset = new tf.data.TextLineDataset(datasetSource)
+  const seed = 42
 
   const config: models.GPTConfig = {
     modelType: 'gpt-nano',
@@ -14,25 +14,34 @@ async function main(): Promise<void> {
     evaluateEvery:50,
     maxEvalBatches: 10,
     blockSize: 16,
-    vocabSize: 50257,
-    debug: false
+    seed
   }
 
   const tokenizer = await AutoTokenizer.from_pretrained('Xenova/gpt2')
-  const tokenDataset = textDataset.map((text: string) => {
-    const tokens = processing.tokenizeAndLeftPad(text, tokenizer, config.blockSize + 1)
-    const ys = tf.oneHot(tokens.slice(1), tokenizer.model.vocab.length)
-    const xs = tf.tensor(tokens.slice(0, config.blockSize), undefined, 'int32')
-    return {xs, ys}
-  }).repeat().batch(16) as tf.data.Dataset<{ xs: tf.Tensor2D, ys: tf.Tensor3D }>
+
+  const tokenDataset = new Dataset([data])
+    .map((text: string) => processing.tokenize(tokenizer, text))
+    .unbatch()
+    .batch(config.blockSize + 1, 1)
+    .map((tokens) => [tokens.pop(), tokens.last()] as [List<number>, number])
+    .repeat()
+    .batch(8);
   
   const model = new models.GPT(config)
-  
   for await (const logs of model.train(tokenDataset, undefined)) {
     console.log(logs)
   }
 
-  const generation = await model.generate("Lorem", tokenizer, { maxNewTokens: 10, doSample: false, topk: 5, temperature:0.1 })
+  let tokens = processing.tokenize(tokenizer, "Lorem");
+
+  const maxNewTokens = 14
+  for (let n = 0; n < maxNewTokens; n++) {
+    const next: number = (await model.predict(
+      List.of(tokens), { seed })
+    ).first();
+    tokens = tokens.push(next)
+  }
+  const generation = tokenizer.decode(tokens.toArray(), { skip_special_tokens: true })
   console.log(generation)
 }
 

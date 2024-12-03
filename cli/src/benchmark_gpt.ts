@@ -1,3 +1,4 @@
+import '@tensorflow/tfjs-node';
 import { List } from "immutable";
 import { parse } from "ts-command-line-args";
 import { AutoTokenizer } from "@xenova/transformers";
@@ -41,7 +42,7 @@ const args = { ...defaultArgs, ...parsedArgs }
  * Benchmark results are reported in https://github.com/epfml/disco/pull/659
  */
 
-async function main(args: Required<CLIArguments>): Promise<void> { 
+async function main(args: Required<CLIArguments>): Promise<void> {
   const { inference: benchmarkInference, modelType,
     contextLength, batchSize, modelPath } = args
 
@@ -77,10 +78,11 @@ async function main(args: Required<CLIArguments>): Promise<void> {
     task.trainingInformation.batchSize = batchSize
     task.trainingInformation.maxSequenceLength = contextLength
     const dataset = loadText('../datasets/wikitext/wiki.train.tokens')
+      .map(text => processing.tokenize(tokenizer, text))
+      .unbatch()
+      .batch(config.blockSize + 1, 1)
 
-    const maxLength = task.trainingInformation.maxSequenceLength ?? (tokenizer.model_max_length as number) + 1
     const preprocessedDataset = dataset
-      .map((line) => processing.tokenizeAndLeftPad(line, tokenizer, maxLength))
       .map((tokens) => [tokens.pop(), tokens.last()] as [List<number>, number])
       .batch(batchSize);
     
@@ -111,10 +113,7 @@ async function main(args: Required<CLIArguments>): Promise<void> {
     const iterations = 10
     console.log("Generating", maxNewTokens, "new tokens")
 
-    let tokens = List(
-      (tokenizer(prompt, { return_tensor: false }) as { input_ids: number[] })
-        .input_ids,
-    );
+    let tokens = processing.tokenize(tokenizer, prompt);
 
     let inferenceTime = 0
     for (let i = 0; i < iterations; i++) {

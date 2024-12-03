@@ -60,7 +60,7 @@ export async function preprocess<D extends DataType>(
 
       const tokenizer = await models.getTaskTokenizer(t);
       return d.map(text => processing.tokenize(tokenizer, text))
-        .unbatch()
+        .flatten()
         .batch(blockSize + 1, 1)
         .map((tokens) => [tokens.pop(), tokens.last()]) as
           Dataset<DataFormat.ModelEncoded[D]>;
@@ -101,7 +101,7 @@ export async function preprocessWithoutLabel<D extends DataType>(
       const tokenizer = await models.getTaskTokenizer(t);
 
       return d.map(text => processing.tokenize(tokenizer, text))
-        .unbatch()
+        .flatten()
         .batch(blockSize)
     }
   }

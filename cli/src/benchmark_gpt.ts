@@ -79,7 +79,7 @@ async function main(args: Required<CLIArguments>): Promise<void> {
     task.trainingInformation.maxSequenceLength = contextLength
     const dataset = loadText('../datasets/wikitext/wiki.train.tokens')
       .map(text => processing.tokenize(tokenizer, text))
-      .unbatch()
+      .flatten()
       .batch(config.blockSize + 1, 1)
 
     const preprocessedDataset = dataset

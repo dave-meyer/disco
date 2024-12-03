@@ -21,7 +21,7 @@ async function main(): Promise<void> {
 
   const tokenDataset = new Dataset([data])
     .map((text: string) => processing.tokenize(tokenizer, text))
-    .unbatch()
+    .flatten()
     .batch(config.blockSize + 1, 1)
     .map((tokens) => [tokens.pop(), tokens.last()] as [List<number>, number])
     .repeat()

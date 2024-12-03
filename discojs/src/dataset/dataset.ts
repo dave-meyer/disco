@@ -12,6 +12,22 @@ type DatasetLike<T> =
   | (() => AsyncIterator<T, void>)
   | (() => Iterator<T, void>);
 
+/** Convert a DatasetLike object to an async generator */
+async function* datasetLikeToGenerator<U>(content: DatasetLike<U>):
+  AsyncGenerator<U, void, undefined> {
+  let iter: AsyncIterator<U, void> | Iterator<U, void>;
+  if (typeof content === "function") iter = content();
+  else if (Symbol.asyncIterator in content)
+    iter = content[Symbol.asyncIterator]();
+  else iter = content[Symbol.iterator]();
+
+  while (true) {
+    const result = await iter.next();
+    if (result.done === true) break;
+    yield result.value;
+  }
+}
+
 /** Immutable series of data */
 export class Dataset<T> implements AsyncIterable<T> {
   readonly #content: () => AsyncIterator<T, void, undefined>;
@@ -23,18 +39,8 @@ export class Dataset<T> implements AsyncIterable<T> {
    */
   constructor(content: DatasetLike<T>) {
     this.#content = async function* () {
-      let iter: AsyncIterator<T, void> | Iterator<T, void>;
-      if (typeof content === "function") iter = content();
-      else if (Symbol.asyncIterator in content)
-        iter = content[Symbol.asyncIterator]();
-      else iter = content[Symbol.iterator]();
-
-      while (true) {
-        const result = await iter.next();
-        if (result.done === true) break;
-        yield result.value;
-      }
-    };
+      yield* datasetLikeToGenerator(content);
+    }
   }
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
@@ -160,11 +166,13 @@ export class Dataset<T> implements AsyncIterable<T> {
     );
   }
 
-  /** Flatten chunks */
-  unbatch<U>(this: Dataset<Batched<U>>): Dataset<U> {
+  /** Flatten batches/arrays of elements */
+  flatten<U>(this: Dataset<DatasetLike<U>>): Dataset<U> {
     return new Dataset(
-      async function* (this: Dataset<Batched<U>>) {
-        for await (const batch of this) yield* batch;
+      async function* (this: Dataset<DatasetLike<U>>) {
+        for await (const batch of this) {
+          yield* datasetLikeToGenerator(batch);
+        }
       }.bind(this),
     );
   }

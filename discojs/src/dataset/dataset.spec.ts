@@ -62,7 +62,7 @@ describe("dataset", () => {
     expect(await arrayFromAsync(right)).to.have.length(1);
   });
 
-  it("batches in samed sized chunks", async () => {
+  it("batches in same sized chunks", async () => {
     const dataset = new Dataset([1, 2, 3, 4]);
 
     const batched = dataset.batch(2);
@@ -155,7 +155,7 @@ describe("dataset", () => {
     const blockSize = 4
 
     const parsed = new Dataset([expectedTokens])
-      .unbatch()
+      .flatten()
       .batch(blockSize + 1, 1)
       
     // -1 because the last sequence is dropped as there is no next token label

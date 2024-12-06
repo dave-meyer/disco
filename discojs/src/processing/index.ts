@@ -56,19 +56,14 @@ export async function preprocess<D extends DataType>(
       // cast as typescript doesn't reduce generic type
       const d = dataset as Dataset<DataFormat.Raw["text"]>;
       const t = task as Task<"text">;
+      const contextLength = task.trainingInformation.contextLength
 
       const tokenizer = await models.getTaskTokenizer(t);
-      const totalTokenCount =
-        task.trainingInformation.maxSequenceLength ??
-        (tokenizer.model_max_length as number);
-
-      return d
-        .map((line) =>
-          processing.tokenizeAndLeftPad(line, tokenizer, totalTokenCount),
-        )
-        .map((tokens) => [tokens.pop(), tokens.last()]) as Dataset<
-        DataFormat.ModelEncoded[D]
-      >;
+      return d.map(text => processing.tokenize(tokenizer, text))
+        .flatten()
+        .batch(contextLength + 1, 1)
+        .map((tokens) => [tokens.pop(), tokens.last()]) as
+          Dataset<DataFormat.ModelEncoded[D]>;
     }
   }
 }
@@ -102,17 +97,12 @@ export async function preprocessWithoutLabel<D extends DataType>(
       // cast as typescript doesn't reduce generic type
       const d = dataset as Dataset<DataFormat.Raw["text"]>;
       const t = task as Task<"text">;
-
+      const contextLength = task.trainingInformation.contextLength
       const tokenizer = await models.getTaskTokenizer(t);
-      const totalTokenCount =
-        t.trainingInformation.maxSequenceLength ??
-        (tokenizer.model_max_length as number);
 
-      return d
-        .map((line) =>
-          processing.tokenizeAndLeftPad(line, tokenizer, totalTokenCount),
-        )
-        .map((tokens) => tokens.pop());
+      return d.map(text => processing.tokenize(tokenizer, text))
+        .flatten()
+        .batch(contextLength)
     }
   }
 }

@@ -2,12 +2,12 @@ import createDebug from "debug";
 import * as tf from '@tensorflow/tfjs'
 
 import type { GPTConfig } from './config.js'
-import { getModelSizes, DEFAULT_CONFIG } from './config.js'
+import { getModelSizes, DefaultGPTConfig } from './config.js'
 import { getCustomAdam, clipByGlobalNormObj } from './optimizers.js'
 import evaluate from './evaluate.js'
 import { GPTArchitecture } from './layers.js'
 
-const debug = createDebug("discojs:models:gpt");
+const debug = createDebug("discojs:models:gpt:model");
 
 /**
  * tfjs does not export LazyIterator and Dataset...
@@ -28,9 +28,9 @@ export declare abstract class Dataset<T> {
 export class GPTModel extends tf.LayersModel {
   protected readonly config: Required<GPTConfig>
 
-  constructor(partialConfig?: GPTConfig, layersModel?: tf.LayersModel) {
+  constructor(partialConfig?: Partial<GPTConfig>, layersModel?: tf.LayersModel) {
     // Fill missing config parameters with default values
-    let completeConfig: Required<GPTConfig> = { ...DEFAULT_CONFIG, ...partialConfig }
+    let completeConfig: Required<GPTConfig> = { ...DefaultGPTConfig, ...partialConfig }
     // Add layer sizes depending on which model has been specified
     completeConfig = { ...completeConfig, ...getModelSizes(completeConfig.modelType) }
 
@@ -59,7 +59,7 @@ export class GPTModel extends tf.LayersModel {
     const callbacks = trainingArgs.callbacks as tf.CustomCallbackArgs
     const evalDataset = trainingArgs.validationData as tf.data.Dataset<{ xs: tf.Tensor2D, ys: tf.Tensor3D }>
     await callbacks.onTrainBegin?.()
-    
+
     for (let epoch = 1; epoch <= trainingArgs.epochs; epoch++) {
       let accuracyFraction: [number, number] = [0, 0];
       let averageLoss = 0
@@ -75,7 +75,7 @@ export class GPTModel extends tf.LayersModel {
         let preprocessingTime = performance.now()
         await Promise.all([xs.data(), ys.data()])
         preprocessingTime = performance.now() - preprocessingTime
-
+        
         // TODO include as a tensor inside the model
         const accTensor = tf.tidy(() => {
           const logits = this.apply(xs)
@@ -92,7 +92,7 @@ export class GPTModel extends tf.LayersModel {
         if (typeof accSum !== 'number')
           throw new Error('got multiple accuracy sum')
         accuracyFraction = [accuracyFraction[0] + accSum, accuracyFraction[1] + accSize];
-	tf.dispose([accTensor])
+        tf.dispose([accTensor])
 
         const lossTensor = tf.tidy(() => {
           const { grads, value: lossTensor } = this.optimizer.computeGradients(() => {
@@ -141,7 +141,7 @@ export class GPTModel extends tf.LayersModel {
         tf.dispose([xs, ys])
       }
       let logs: tf.Logs = {
-        'loss': averageLoss / iteration,
+        'loss': averageLoss / (iteration - 1), // -1 because iteration got incremented at the end of the loop
         'acc': accuracyFraction[0] / accuracyFraction[1],
       }
       if (evalDataset !== undefined) {

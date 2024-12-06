@@ -22,7 +22,7 @@ export class Validator<D extends DataType> {
           .zip(batch.map(([_, outputs]) => outputs))
           .map(([inferred, truth]) => inferred === truth),
       )
-      .unbatch();
+      .flatten();
 
     for await (const e of results) yield e;
   }
@@ -36,7 +36,7 @@ export class Validator<D extends DataType> {
     )
       .batch(this.task.trainingInformation.batchSize)
       .map((batch) => this.#model.predict(batch))
-      .unbatch();
+      .flatten();
 
     const predictions = await processing.postprocess(
       this.task,

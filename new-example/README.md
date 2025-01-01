@@ -1,6 +1,7 @@
 # DISCO custom examples
 
 This folder contains examples of how to use DISCO via Node.js scripts.
+This is mostly WIP, only the `training.ts` file has been adapted to run a simple server for testing.
 
 Running Disco on Windows might pose some challenges. If you run on Windows, it is recommended to use **WSL2**.
 

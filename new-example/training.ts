@@ -88,7 +88,7 @@ const serve = async () => {
   const NAME: string = 'titanic'
 
   // Launch a server instance
-  const [server, url] = await new Server().serve(8070, defaultTasks.simpleFace, defaultTasks.titanic);
+  const [server, url] = await new Server().serve(8070, defaultTasks.mnist);
   console.log("url", url);
 };
 

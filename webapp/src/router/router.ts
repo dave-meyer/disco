@@ -15,6 +15,7 @@ import Features from '@/components/information/Features.vue'
 import Tutorial from '@/components/information/Tutorial.vue'
 import Further from '@/components/information/Further.vue'
 import AboutUs from '@/components/pages/AboutUs.vue'
+import Dataset from '@/components/pages/Dataset.vue'
 
 const debug = createDebug("webapp:router");
 
@@ -94,6 +95,11 @@ const router = createRouter({
         default: true,
         ProgressBar: false
       }
+    },
+    {
+      path: '/dataset',
+      name: 'dataset',
+      component: Dataset
     },
     {
       path: '/:pathMatch(.*)*',

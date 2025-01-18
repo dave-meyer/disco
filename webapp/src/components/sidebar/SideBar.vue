@@ -32,9 +32,13 @@
           <InfoIcon />
         </SidebarButton>
 
-        <SidebarButton 
-          to="" 
-          :text="currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'" 
+        <SidebarButton to="/dataset" text="Download datasets">
+          <StackIcon />
+        </SidebarButton>
+
+        <SidebarButton
+          to=""
+          :text="currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'"
           @click="toggleDarkMode"
         >
           <MoonIcon v-if="currentTheme === 'light'"/>
@@ -58,6 +62,7 @@ import DISCO from "@/components/simple/DISCO.vue";
 import SidebarButton from "./SidebarButton.vue";
 import MoonIcon from "@/assets/svg/MoonIcon.vue";
 import SunIcon from "@/assets/svg/SunIcon.vue";
+import StackIcon from "@/assets/svg/StackIcon.vue";
 
 const currentTheme = ref(localStorage.getItem('theme') || 'light');
 
